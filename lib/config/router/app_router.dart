@@ -3,12 +3,15 @@ import 'package:go_router/go_router.dart';
 import 'package:cine_app/presentation/screens/screens.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/home/0',
   routes: [
     GoRoute(
-      path: '/',
+      path: '/home/:page',
       name: HomeScreen.name,
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) {
+        final pageIndex = (state.pathParameters['page'] ?? 0).toString();
+        return HomeScreen(pageIndex: int.parse(pageIndex));
+      },
       routes: [
         GoRoute(
           path: 'movie/:id',
@@ -20,5 +23,10 @@ final appRouter = GoRouter(
         ),
       ]
     ),
+    GoRoute(
+      path: '/',
+      // el redirect pide el context y el state pero como no los necesito utilizo guion
+      redirect: (_, __) => '/home/0',
+    )
   ]
 );
