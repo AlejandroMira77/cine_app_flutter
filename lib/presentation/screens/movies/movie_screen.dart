@@ -1,9 +1,8 @@
-import 'package:cine_app/presentation/providers/actors/actors_by_movie_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cine_app/domain/entities/movie.dart';
-import 'package:cine_app/presentation/providers/movies/movie_info_provider.dart';
+import 'package:cine_app/presentation/providers/providers.dart';
 
 class MovieScreen extends ConsumerStatefulWidget {
 
@@ -53,7 +52,12 @@ class MovieScreenState extends ConsumerState<MovieScreen> {
   }
 }
 
-class _CustomSliverAppBar extends StatelessWidget {
+final isFavoriteProvider = FutureProvider.family.autoDispose((ref, int movieId) {
+  final localStorageRepository = ref.watch(localStorageRepositoryProvider);
+  return localStorageRepository.isMovieFavorite(movieId);
+});
+
+class _CustomSliverAppBar extends ConsumerWidget {
 
   final Movie movie;
 
@@ -62,20 +66,28 @@ class _CustomSliverAppBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
 
     final size = MediaQuery.of(context).size;
+    final isFavoriteFuture = ref.watch(isFavoriteProvider(movie.id));
 
     return SliverAppBar(
       backgroundColor: Colors.black,
       expandedHeight: size.height * 0.7,
       foregroundColor: Colors.white,
       actions: [
-        IconButton(onPressed: () {
-
+        IconButton(onPressed: () async {
+          await ref.watch(localStorageRepositoryProvider).toggleFavorite(movie);
+          // lo invalidamos para que vuelva hacer la peticion y confirme
+          ref.invalidate(isFavoriteProvider(movie.id));
         },
-        icon: const Icon(Icons.favorite_border)
-        // icon: const Icon(Icons.favorite_rounded, color: Colors.red)
+        icon: isFavoriteFuture.when(
+          loading: () => const CircularProgressIndicator(strokeWidth: 2),
+          data: (isFavorite) => isFavorite
+            ? const Icon(Icons.favorite_rounded, color: Colors.red)
+            : const Icon(Icons.favorite_border),
+          error: (_, __) => throw UnimplementedError(),
+        )
         )
       ],
       flexibleSpace: FlexibleSpaceBar(
