@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:cine_app/presentation/providers/providers.dart';
 import 'package:cine_app/presentation/widgets/widgets.dart';
@@ -14,10 +15,23 @@ class FavoritesView extends ConsumerStatefulWidget {
 
 class FavoritesViewState extends ConsumerState<FavoritesView> {
 
+  bool isLastPage = false;
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    ref.read(favoriteMoviesProvider.notifier).loadNextPage();
+    loadNextPage();
+  }
+
+  void loadNextPage() async {
+    if (isLoading || isLastPage) return;
+    isLoading = true;
+    final movies = await ref.read(favoriteMoviesProvider.notifier).loadNextPage();
+    isLoading = false;
+    if (movies.isEmpty) {
+      isLastPage = true;
+    }
   }
 
   @override
@@ -26,8 +40,31 @@ class FavoritesViewState extends ConsumerState<FavoritesView> {
     // el .value.toList es para convertir el map a list
     final favoriteMovies = ref.watch(favoriteMoviesProvider).values.toList();
 
+    if (favoriteMovies.isEmpty) {
+      final colors = Theme.of(context).colorScheme;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.favorite_outline_sharp, size: 60, color: colors.primary),
+            Text('Ohhh no!!', style: TextStyle(fontSize: 30, color: colors.primary)),
+            const Text('No tienes películas favoritas', style: TextStyle(fontSize: 20, color: Colors.black45)),
+            const SizedBox(height: 20),
+            FilledButton.tonal(
+              onPressed: () => context.go('/home/0'),
+              child: const Text('Empieza a buscar')
+            )
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
-      body: MovieMasonry(movies: favoriteMovies)
+      body: MovieMasonry(
+        loadNextPage: loadNextPage,
+        movies: favoriteMovies
+      )
     );
   }
 }
